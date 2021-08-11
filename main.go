@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -17,14 +18,15 @@ var oids = map[string]string{
 }
 
 type lldpEntry struct {
-	localPortId   string
-	remotePortId  string
-	remoteSysName string
+	LocalPortId   string
+	RemotePortId  string
+	RemoteSysName string
 }
 
 func main() {
 	var ip = flag.String("ip", "127.0.0.1", "IP address of target device")
 	var community = flag.String("c", "public", "SNMP community")
+	var format = flag.String("o", "csv", "Output format (csv, json)")
 
 	flag.Parse()
 
@@ -47,7 +49,7 @@ func main() {
 
 	for _, pdu := range results {
 		ifDescr := string(pdu.Value.([]uint8))
-		lldpEntries[pdu.Name[26:]] = &lldpEntry{localPortId: ifDescr}
+		lldpEntries[pdu.Name[26:]] = &lldpEntry{LocalPortId: ifDescr}
 	}
 
 	results, err = target.BulkWalkAll(oids["lldpRemSysName"])
@@ -56,7 +58,7 @@ func main() {
 	}
 	for _, pdu := range results {
 		sysName := string(pdu.Value.([]uint8))
-		lldpEntries[strings.Split(pdu.Name[26:], ".")[1]].remoteSysName = sysName
+		lldpEntries[strings.Split(pdu.Name[26:], ".")[1]].RemoteSysName = sysName
 	}
 
 	results, err = target.BulkWalkAll(oids["lldpRemPortId"])
@@ -65,20 +67,29 @@ func main() {
 	}
 	for _, pdu := range results {
 		remotePort := string(pdu.Value.([]uint8))
-		lldpEntries[strings.Split(pdu.Name[26:], ".")[1]].remotePortId = remotePort
+		lldpEntries[strings.Split(pdu.Name[26:], ".")[1]].RemotePortId = remotePort
 	}
 
-	fmt.Println("Local,RemotePort,RemoteSysName")
-
-	for _, lldp := range lldpEntries {
-		if lldp.remotePortId == "" || lldp.remoteSysName == "" {
-			continue
+	if *format == "json" {
+		jsonString, err := json.Marshal(lldpEntries)
+		if err != nil {
+			log.Fatal(err)
 		}
-		fmt.Println(
-			lldp.localPortId, ",",
-			lldp.remotePortId, ",",
-			lldp.remoteSysName,
-		)
+		fmt.Println(string(jsonString))
+		return
+	} else if *format == "csv" {
+		fmt.Println("Local,RemotePort,RemoteSysName")
+		for _, lldp := range lldpEntries {
+			if lldp.RemotePortId == "" && lldp.RemoteSysName == "" {
+				continue
+			}
+			fmt.Println(
+				lldp.LocalPortId, ",",
+				lldp.RemotePortId, ",",
+				lldp.RemoteSysName,
+			)
+		}
+		return
 	}
 
 }
