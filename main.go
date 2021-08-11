@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -76,7 +77,7 @@ func main() {
 			log.Fatal(err)
 		}
 		fmt.Println(string(jsonString))
-		return
+		os.Exit(0)
 	} else if *format == "csv" {
 		fmt.Println("Local,RemotePort,RemoteSysName")
 		for _, lldp := range lldpEntries {
@@ -89,7 +90,7 @@ func main() {
 				lldp.RemoteSysName,
 			)
 		}
-		return
+		os.Exit(0)
 	}
 
 }
