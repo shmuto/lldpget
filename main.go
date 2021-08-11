@@ -30,9 +30,9 @@ func main() {
 	var ip = flag.String("ip", "127.0.0.1", "IP address of target device")
 	var community = flag.String("c", "public", "SNMP community")
 	var format = flag.String("o", "csv", "Output format (csv, json)")
-	var localPortType = flag.String("lt", "desc", "port-id-subtype selection for local (desc|id)")
-	var remotePortType = flag.String("rt", "desc", "port-id-subtype selection for remote (desc|id)")
-	var prune = flag.Bool("p", false, "whether print LLDP entry has no remote port name or not")
+	var localPortType = flag.String("lt", "desc", "port-id-subtype selection for local (desc, id)")
+	var remotePortType = flag.String("rt", "desc", "port-id-subtype selection for remote (desc, id)")
+	var prune = flag.Bool("p", false, "do not output LLDP entry which has no remote info")
 
 	flag.Parse()
 
@@ -90,6 +90,14 @@ func main() {
 		lldpEntries[strings.Split(pdu.Name[26:], ".")[1]].RemotePortName = remotePort
 	}
 
+	if *prune {
+		for key, lldp := range lldpEntries {
+			if lldp.RemotePortName == "" || lldp.RemoteSysName == "" {
+				delete(lldpEntries, key)
+			}
+		}
+	}
+
 	if *format == "json" {
 		jsonString, err := json.Marshal(lldpEntries)
 		if err != nil {
@@ -100,11 +108,6 @@ func main() {
 	} else if *format == "csv" {
 		fmt.Println("Local,RemotePort,RemoteSysName")
 		for _, lldp := range lldpEntries {
-			if *prune {
-				if lldp.RemotePortName == "" && lldp.RemoteSysName == "" {
-					continue
-				}
-			}
 			fmt.Println(
 				lldp.LocalPortName, ",",
 				lldp.RemotePortName, ",",
