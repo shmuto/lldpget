@@ -104,7 +104,6 @@ func main() {
 			log.Fatal(err)
 		}
 		fmt.Println(string(jsonString))
-		os.Exit(0)
 	} else if *format == "csv" {
 		fmt.Println("Local,RemotePort,RemoteSysName")
 		for _, lldp := range lldpEntries {
@@ -114,7 +113,8 @@ func main() {
 				lldp.RemoteSysName,
 			)
 		}
-		os.Exit(0)
 	}
+
+	os.Exit(0)
 
 }
