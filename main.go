@@ -32,6 +32,7 @@ func main() {
 	var format = flag.String("o", "csv", "Output format (csv, json)")
 	var localPortType = flag.String("lt", "desc", "port-id-subtype selection for local (desc|id)")
 	var remotePortType = flag.String("rt", "desc", "port-id-subtype selection for remote (desc|id)")
+	var prune = flag.Bool("p", false, "whether print LLDP entry has no remote port name or not")
 
 	flag.Parse()
 
@@ -99,8 +100,10 @@ func main() {
 	} else if *format == "csv" {
 		fmt.Println("Local,RemotePort,RemoteSysName")
 		for _, lldp := range lldpEntries {
-			if lldp.RemotePortName == "" && lldp.RemoteSysName == "" {
-				continue
+			if *prune {
+				if lldp.RemotePortName == "" && lldp.RemoteSysName == "" {
+					continue
+				}
 			}
 			fmt.Println(
 				lldp.LocalPortName, ",",
