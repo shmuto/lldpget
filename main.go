@@ -13,13 +13,14 @@ import (
 )
 
 var oids = map[string]string{
-	"lldpLocPortId":  ".1.0.8802.1.1.2.1.3.7.1.3",
-	"lldpRemSysName": ".1.0.8802.1.1.2.1.4.1.1.9",
-	"lldpRemPortId":  ".1.0.8802.1.1.2.1.4.1.1.7",
+	"lldpLocPortId":   ".1.0.8802.1.1.2.1.3.7.1.3",
+	"lldpLocPortDesc": ".1.0.8802.1.1.2.1.3.7.1.4",
+	"lldpRemSysName":  ".1.0.8802.1.1.2.1.4.1.1.9",
+	"lldpRemPortId":   ".1.0.8802.1.1.2.1.4.1.1.7",
 }
 
 type lldpEntry struct {
-	LocalPortId   string
+	LocalPortName string
 	RemotePortId  string
 	RemoteSysName string
 }
@@ -28,6 +29,7 @@ func main() {
 	var ip = flag.String("ip", "127.0.0.1", "IP address of target device")
 	var community = flag.String("c", "public", "SNMP community")
 	var format = flag.String("o", "csv", "Output format (csv, json)")
+	var localPortType = flag.String("lt", "desc", "port-id-subtype selection for local (desc|id)")
 
 	flag.Parse()
 
@@ -46,11 +48,23 @@ func main() {
 
 	lldpEntries := map[string]*lldpEntry{}
 
-	results, err := target.BulkWalkAll(oids["lldpLocPortId"])
+	var results []gosnmp.SnmpPDU
+
+	if *localPortType == "desc" {
+		results, err = target.BulkWalkAll(oids["lldpLocPortDesc"])
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else if *localPortType == "id" {
+		results, err = target.BulkWalkAll(oids["lldpLocPortId"])
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
 	for _, pdu := range results {
 		ifDescr := string(pdu.Value.([]uint8))
-		lldpEntries[pdu.Name[26:]] = &lldpEntry{LocalPortId: ifDescr}
+		lldpEntries[pdu.Name[26:]] = &lldpEntry{LocalPortName: ifDescr}
 	}
 
 	results, err = target.BulkWalkAll(oids["lldpRemSysName"])
@@ -85,7 +99,7 @@ func main() {
 				continue
 			}
 			fmt.Println(
-				lldp.LocalPortId, ",",
+				lldp.LocalPortName, ",",
 				lldp.RemotePortId, ",",
 				lldp.RemoteSysName,
 			)
