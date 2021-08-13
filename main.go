@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -27,7 +28,7 @@ type lldpEntry struct {
 }
 
 func main() {
-	var ip = flag.String("ip", "127.0.0.1", "IP address of target device")
+	var ip = flag.String("ip", "", "IP address of target device")
 	var community = flag.String("c", "public", "SNMP community")
 	var format = flag.String("o", "csv", "Output format (csv, json)")
 	var localPortType = flag.String("lt", "name", "port-id-subtype selection for local (name, desc)")
@@ -36,6 +37,9 @@ func main() {
 
 	flag.Parse()
 
+	if net.ParseIP(*ip) == nil {
+		log.Fatal("-ip argument is not set or invalid")
+	}
 	if *localPortType != "name" && *localPortType != "desc" {
 		log.Fatal("-lt flag argument should be \"name\" or \"desc\"")
 	}
